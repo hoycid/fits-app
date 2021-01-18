@@ -9,8 +9,11 @@ import {
   Badge,
   Table,
   Col,
+  InputGroup,
 } from "react-bootstrap";
+import { FiPlus, FiMinus } from "react-icons/fi";
 import NavbarBtStrp from "react-bootstrap/Navbar";
+import moment from 'moment';
 import Axios from "axios";
 
 import { CartContext } from "../contexts/CartContext";
@@ -25,6 +28,9 @@ class Navbar extends Component {
     showEditQuantity: false,
     newQuantity: 1,
     editQuantityId: "",
+    cartQuantities: {
+      default: "0",
+    },
     newMaterial: {
       title: "",
       type: "",
@@ -34,10 +40,17 @@ class Navbar extends Component {
       year: "",
       shelf: "",
     },
+    search: ""
   };
+
+  componentDidMount() {
+    const date = moment().format()
+    this.setState({...this.state, currentDate: date});
+  }
 
   render() {
     const { cart, removeFromCart, clearCart } = this.context;
+
     return (
       <div>
         <NavbarBtStrp className="custom-navbar" variant="dark">
@@ -59,7 +72,7 @@ class Navbar extends Component {
                 id="custom-button"
                 onClick={() => this.setState({ showCart: true })}
               >
-                Cart{" "}
+                Cart
                 <Badge pill variant="light">
                   {cart.length}
                 </Badge>
@@ -67,8 +80,23 @@ class Navbar extends Component {
             </Nav.Link>
           </Nav>
           <Form inline>
-            <FormControl type="text" placeholder="Search" className="mr-sm-2" />
-            <Button variant="outline-light">Search</Button>
+            <FormControl 
+            type="text" 
+            value={this.state.search} 
+            placeholder="Search" 
+            className="mr-sm-2" 
+            onChange={(e) => {
+              this.setState({...this.state, search: e.target.value})
+            }}
+            />
+            <Button 
+              variant="outline-light"
+              onClick={() => {
+                
+              }}
+            >
+              Search
+              </Button>
           </Form>
         </NavbarBtStrp>
 
@@ -78,15 +106,13 @@ class Navbar extends Component {
         <Modal
           show={this.state.showCart}
           onHide={() => this.setState({ showCart: false })}
-          size="xl"
+          size="lg"
         >
           <Modal.Header closeButton>
-            <Modal.Title>
-              Cart
-            </Modal.Title>
+            <Modal.Title>Cart</Modal.Title>
             <Badge pill variant="success">
-                {cart.length}
-              </Badge>
+              {cart.length}
+            </Badge>
           </Modal.Header>
           <Modal.Body>
             <Table size="sm" bordered hover>
@@ -104,28 +130,137 @@ class Navbar extends Component {
               <tbody>
                 {cart.length > 0
                   ? cart.map((material, index) => {
-                      return (
-                        <tr key={index}>
-                          <td>{material.title}</td>
-                          <td>{material.type}</td>
-                          <td>{material.commodity}</td>
-                          <td>{material.producer}</td>
-                          <td>{material.year}</td>
-                          <td>x {material.quantity}</td>
-                          <td>
-                            <Button
-                              variant="outline-danger"
-                              onClick={() => {
-                                removeFromCart(material.id);
-                              }}
-                            >
-                              Remove
-                            </Button>
-                          </td>
-                        </tr>
-                      );
+                      if (this.state.cartQuantities)
+                        return (
+                          <tr key={index}>
+                            <td>{material.title}</td>
+                            <td>{material.type}</td>
+                            <td>{material.commodity}</td>
+                            <td>{material.producer}</td>
+                            <td>{material.year}</td>
+                            <td>
+                              <InputGroup size="sm">
+                                <InputGroup.Prepend>
+                                  <Button
+                                    variant="outline-secondary"
+                                    onClick={() => {
+                                      var currentValue = this.state
+                                        .cartQuantities[material.id]
+                                        ? parseInt(
+                                            this.state.cartQuantities[
+                                              material.id
+                                            ]
+                                          )
+                                        : this.setState({
+                                            ...this.state,
+                                            cartQuantities: {
+                                              ...this.state.cartQuantities,
+                                              [material.id]: "1",
+                                            },
+                                          });
+                                      if (
+                                        currentValue > 1 &&
+                                        typeof currentValue === "number"
+                                      ) {
+                                        currentValue--;
+                                        this.setState({
+                                          ...this.state,
+                                          cartQuantities: {
+                                            ...this.state.cartQuantities,
+                                            [material.id]: currentValue.toString(),
+                                          },
+                                        });
+                                      }
+                                    }}
+                                  >
+                                    <FiMinus />
+                                  </Button>
+                                </InputGroup.Prepend>
+                                <FormControl
+                                  value={
+                                    this.state.cartQuantities[material.id]
+                                      ? this.state.cartQuantities[material.id]
+                                      : this.state.cartQuantities.default
+                                  }
+                                  onChange={(e) => {
+                                    this.setState({
+                                      ...this.state,
+                                      cartQuantities: {
+                                        ...this.state.cartQuantities,
+                                        [material.id]: e.target.value
+                                          ? e.target.value < material.quantity
+                                            ? e.target.value
+                                            : material.quantity
+                                          : "1",
+                                      },
+                                    });
+                                  }}
+                                />
+                                <InputGroup.Append>
+                                  <Button
+                                    variant="outline-secondary"
+                                    onClick={() => {
+                                      var currentValue = this.state
+                                        .cartQuantities[material.id]
+                                        ? this.state.cartQuantities[
+                                            material.id
+                                          ] < material.quantity
+                                          ? parseInt(
+                                              this.state.cartQuantities[
+                                                material.id
+                                              ]
+                                            ) + 1
+                                          : parseInt(
+                                              this.state.cartQuantities[
+                                                material.id
+                                              ]
+                                            )
+                                        : this.setState({
+                                            ...this.state,
+                                            cartQuantities: {
+                                              ...this.state.cartQuantities,
+                                              [material.id]: "1",
+                                            },
+                                          });
+                                      if (typeof currentValue === "number") {
+                                        this.setState({
+                                          ...this.state,
+                                          cartQuantities: {
+                                            ...this.state.cartQuantities,
+                                            [material.id]: currentValue.toString(),
+                                          },
+                                        });
+                                      }
+                                    }}
+                                  >
+                                    <FiPlus />
+                                  </Button>
+                                </InputGroup.Append>
+                              </InputGroup>
+                            </td>
+                            <td>
+                              <Button
+                                variant="outline-danger"
+                                size="sm"
+                                onClick={() => {
+                                  const cartQuantities = this.state
+                                    .cartQuantities;
+                                  delete cartQuantities[material.id];
+
+                                  this.setState({
+                                    ...this.state,
+                                    cartQuantities: cartQuantities,
+                                  });
+                                  removeFromCart(material.id);
+                                }}
+                              >
+                                Remove
+                              </Button>
+                            </td>
+                          </tr>
+                        );
                     })
-                  : ""}
+                  : null}
               </tbody>
             </Table>
           </Modal.Body>
@@ -134,6 +269,7 @@ class Navbar extends Component {
               disabled={cart.length > 0 ? false : true}
               variant="outline-dark"
               onClick={() => {
+                this.setState({ cartQuantities: { default: "0" } });
                 clearCart();
               }}
             >
@@ -142,7 +278,24 @@ class Navbar extends Component {
             <Button
               disabled={cart.length > 0 ? false : true}
               variant="success"
-              onClick={() => this.setState({ showCart: false })}
+              onClick={() => {
+                const checkedOut = cart.map((material) => {
+                  return {
+                    id: material.id,
+                    quantity:
+                      material.quantity -
+                      this.state.cartQuantities[material.id],
+                  };
+                });
+                Axios.put("http://localhost:3001/checkout", checkedOut).then((response) => {
+                  if (response.status === 200) {
+                    this.setState({...this.state, showCart: false})
+                    clearCart();
+                  }
+                }, (error) => {
+                  if (error) console.log(error)
+                })
+              }}
             >
               Checkout
             </Button>
@@ -206,7 +359,6 @@ class Navbar extends Component {
                   <Form.Label>Quantity</Form.Label>
                   <Form.Control
                     value={this.state.newMaterial.quantity}
-                    placeholder="1"
                     onChange={(e) => {
                       this.setState({
                         ...this.state,
@@ -304,20 +456,31 @@ class Navbar extends Component {
             <Button
               variant="success"
               onClick={() => {
-                this.setState({
-                  ...this.state,
-                  showNew: false,
-                  newMaterial: {
-                    title: "",
-                    type: "",
-                    quantity: "1",
-                    commodity: "",
-                    producer: "",
-                    year: "",
-                    shelf: "",
-                  },
+                Axios.post("http://localhost:3001", this.state.newMaterial).then((response) => {
+                  if (response.status === 200) {
+                    Axios.post("http://localhost:3001/log", {action: "add", title: this.state.newMaterial.title, quantity: this.state.newMaterial.quantity})
+                    .then((response) => {
+                      this.setState({
+                        ...this.state,
+                        showNew: false,
+                        newMaterial: {
+                          title: "",
+                          type: "",
+                          quantity: "1",
+                          commodity: "",
+                          producer: "",
+                          year: "",
+                          shelf: "",
+                        },
+                      });
+                      if (response.status === 200) console.log("Change has been logged successfully")
+                    }, (error) => {
+                      if (error) console.log(`Unable to log changes. Error: ${error}`)
+                    });
+                  }
+                }, (error) => {
+                  if (error) console.log(error)
                 });
-                Axios.post("http://localhost:3001", this.state.newMaterial);
               }}
             >
               Submit

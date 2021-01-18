@@ -10,6 +10,7 @@ import {
   Button,
   Col,
 } from "react-bootstrap";
+import moment from 'moment';
 import Axios from "axios";
 
 import { CartContext } from "../contexts/CartContext";
@@ -34,8 +35,13 @@ class Home extends Component {
     },
   };
 
+  componentDidMount() {
+    const date = moment().format()
+    this.setState({...this.state, currentDate: date});
+  }
+
   render() {
-    const { addToCart } = this.context;
+    const { cart, addToCart } = this.context;
     return (
       <Container>
         {this.props.materials ? (
@@ -65,11 +71,9 @@ class Home extends Component {
                   return (
                     <tbody key={index}>
                       <tr>
-                        <td>{index +1}</td>
+                        <td>{index + 1}</td>
                         <td>{material.title ? material.title : "Untitled"}</td>
-                        <td>
-                          {material.quantity ? material.quantity : 0}
-                        </td>
+                        <td>{material.quantity ? material.quantity : 0}</td>
                         <td>
                           {material.commodity ? material.commodity : "Unknown"}
                         </td>
@@ -77,9 +81,7 @@ class Home extends Component {
                         <td>
                           {material.producer ? material.producer : "Unknown"}
                         </td>
-                        <td>
-                          {material.year ? material.year : "Unknown"}
-                        </td>
+                        <td>{material.year ? material.year : "Unknown"}</td>
                         <td>N/A</td>
                         <td>
                           <ButtonGroup>
@@ -94,15 +96,14 @@ class Home extends Component {
                                   (material) =>
                                     material.id === this.state.currentMaterial
                                 );
-                                addToCart(materialToAdd);
+                                const existing = cart.find((material) => material.id === materialToAdd.id)
+                                if (!existing) addToCart(materialToAdd);
                               }}
                             >
                               <FiShoppingCart />
                             </Button>
                             <Dropdown>
-                              <Dropdown.Toggle
-                                split
-                              >
+                              <Dropdown.Toggle split>
                                 <FiSettings />
                               </Dropdown.Toggle>
                               <Dropdown.Menu>
@@ -115,7 +116,7 @@ class Home extends Component {
                                   onClick={() => {
                                     this.setState({ showEdit: true });
                                     Axios.get(
-                                      `http://localhost:3001/${this.state.currentMaterial}`
+                                      `http://localhost:3001/edit/${this.state.currentMaterial}`
                                     ).then((response) => {
                                       this.setState({
                                         editMaterial: response.data,
@@ -134,7 +135,18 @@ class Home extends Component {
                                   onClick={() => {
                                     Axios.delete(
                                       `http://localhost:3001/${this.state.currentMaterial}`
-                                    );
+                                    ).then((response) => {
+                                      if (response.status === 200) {
+                                        Axios.post("http://localhost:3001/log", {action: "delete", title: material.title, quantity: material.quantity, date: this.state.currentDate})
+                                        .then((response) => {
+                                          if (response.status === 200) console.log("Change has been logged succesfully")
+                                        }, (error) => {
+                                          if (error) console.log(`Unable to log changes. Error = ${error}`)
+                                        });
+                                      }
+                                    }, (error) => {
+                                      if (error) console.log(error)
+                                    });
                                   }}
                                 >
                                   Delete
@@ -227,7 +239,6 @@ class Home extends Component {
                         ? this.state.editMaterial.quantity
                         : ""
                     }
-                    placeholder="1"
                     onChange={(e) => {
                       this.setState({
                         ...this.state,
@@ -338,14 +349,23 @@ class Home extends Component {
             <Button
               variant="success"
               onClick={() => {
-                this.setState({
-                  ...this.state,
-                  showEdit: false,
-                });
                 Axios.put(
                   `http://localhost:3001/${this.state.currentMaterial}`,
                   this.state.editMaterial
-                );
+                ).then((response) => {
+                  if (response.status === 200) {
+                    Axios.post("http://localhost:3001/log", {action: "edit", title: this.state.editMaterial.title, quantity: this.state.editMaterial.quantity})
+                  .then((response) => {
+                    this.setState({
+                      ...this.state,
+                      showEdit: false,
+                    });
+                    if (response.status === 200) console.log("Change has been logged successfully")
+                  }, (error) => {
+                    if (error) console.log(`Unable to log changes. Error: ${error}`)
+                  });
+                  }
+                })
               }}
             >
               Submit

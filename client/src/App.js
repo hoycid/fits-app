@@ -20,9 +20,11 @@ function App() {
   // }, []);
 
   const mounted = useRef();
+  const wrapper = React.createRef();
+
   useEffect(() => {
     if (!mounted.current) {
-      Axios.get("http://localhost:3001/").then((response) => {
+      Axios.get(`http://localhost:3001/${0}`).then((response) => {
         setMaterials(response.data);
       });
       Axios.get("http://localhost:3001/commodities").then((response) => {
@@ -30,14 +32,14 @@ function App() {
       });
       mounted.current = true;
     } else {
-      Axios.get("http://localhost:3001/").then((response) => {
+      Axios.get(`http://localhost:3001/${0}`).then((response) => {
         setMaterials(response.data);
       });
     }
   });
 
   return (
-    <div className="App">
+    <div className="App" ref={wrapper}>
       <CartContextProvider>
         <Navbar commodities={commodities} />
         <Home commodities={commodities} materials={materials} />
